@@ -31,6 +31,7 @@ class FakeRDS:
         env="staging",
         states=("modifying", "modifying", "available"),
         fail_on_describe_after=None,
+        promote_error=None,
     ):
         self.status = status
         self.is_replica = is_replica
@@ -40,6 +41,7 @@ class FakeRDS:
         self.promote_calls = 0
         self.describes_after = 0
         self.fail_on_describe_after = fail_on_describe_after
+        self.promote_error = promote_error
 
     def describe_db_instances(self, DBInstanceIdentifier):
         assert DBInstanceIdentifier == REPLICA
@@ -74,6 +76,9 @@ class FakeRDS:
     def promote_read_replica(self, DBInstanceIdentifier):
         self.promote_calls += 1
         self.promoted = True
+        if self.promote_error:
+            # AWS may have accepted the request even though the call errored.
+            raise self.promote_error
         return {"DBInstance": {"DBInstanceIdentifier": DBInstanceIdentifier}}
 
 
