@@ -149,3 +149,28 @@ def test_cli_exit_codes(tmp_path):
 def test_cli_prints_operator_actions_on_fail(tmp_path, capsys):
     run_cli(tmp_path, FakeRDS(states=["modifying"] * 100), "--execute", "--timeout-seconds", "60")
     assert "operator: Check orders-dr" in capsys.readouterr().err
+
+
+def test_promote_call_error_still_produces_fail_report():
+    rds = FakeRDS(promote_error=RuntimeError("ReadTimeoutError"))
+    out, _ = orchestrate(rds=rds, execute=True)
+    assert rds.promote_calls == 1
+    assert out.result == "FAIL"
+    assert any(
+        "error calling PromoteReadReplica (promotion may or may not have started): "
+        "RuntimeError: ReadTimeoutError" in text
+        for _, _, text in out.steps
+    )
+    assert any("may be partly or fully promoted" in a for a in out.operator_actions)
+    assert out.rto is None
+
+
+def test_cli_writes_report_when_promote_call_errors(tmp_path, capsys):
+    code, report = run_cli(
+        tmp_path, FakeRDS(promote_error=RuntimeError("ReadTimeoutError")), "--execute"
+    )
+    assert code == 1
+    text = report.read_text(encoding="utf-8")
+    assert "- Result: **FAIL**" in text
+    assert "## Operator actions" in text
+    assert "operator: Check orders-dr" in capsys.readouterr().err

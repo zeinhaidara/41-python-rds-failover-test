@@ -136,13 +136,20 @@ class Orchestrator:
             return out
 
         out.triggered_at = self._started = self.clock()
-        self.rds.promote_read_replica(DBInstanceIdentifier=self.opts.replica_id)
-        out.log(out.triggered_at, "OK", "PromoteReadReplica called")
+        promote_returned = False
         try:
+            # The promote call sits inside the try: an error here is ambiguous (AWS may
+            # still have started the promotion), so it must produce the same FAIL report.
+            self.rds.promote_read_replica(DBInstanceIdentifier=self.opts.replica_id)
+            promote_returned = True
+            out.log(out.triggered_at, "OK", "PromoteReadReplica called")
             return self._after_trigger(out)
         except Exception as exc:
-            # Something broke mid-test: record it as a FAIL so the report still gets written.
-            return self._fail(out, f"error after promotion: {type(exc).__name__}: {exc}")
+            if promote_returned:
+                where = "after promotion"
+            else:
+                where = "calling PromoteReadReplica (promotion may or may not have started)"
+            return self._fail(out, f"error {where}: {type(exc).__name__}: {exc}")
 
     def _after_trigger(self, out: Outcome) -> Outcome:
         db = self._wait_promoted(out)
