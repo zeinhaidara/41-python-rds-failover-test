@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadState",
+      "Effect": "Allow",
+      "Action": ["rds:DescribeDBInstances", "rds:ListTagsForResource", "cloudwatch:GetMetricStatistics"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "PromoteOnlyTaggedNonProdReplicas",
+      "Effect": "Allow",
+      "Action": "rds:PromoteReadReplica",
+      "Resource": "arn:aws:rds:*:123456789012:db:*",
+      "Condition": {
+        "StringEquals": {"aws:ResourceTag/environment": ["staging", "dr-test"]}
+      }
+    }
+  ]
+}
