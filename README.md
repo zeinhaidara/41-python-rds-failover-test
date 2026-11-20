@@ -6,7 +6,7 @@ standalone primary, checking that the application can connect, timing the
 whole thing, and writing a Markdown report. It runs as a **dry run** unless
 you pass `--execute`.
 
-> **Status:** AWS RDS only. **Azure SQL is not implemented.** 18 pytest
+> **Status:** AWS RDS only. **Azure SQL is not implemented.** 20 pytest
 > tests drive the orchestration with fake RDS and CloudWatch clients, an
 > injected clock and sleep, and a fake connectivity check. They cover
 > pre-check refusals, timeouts, failed checks and API errors. Nothing has
@@ -64,8 +64,11 @@ flowchart TD
 
 ## Failure handling
 
-A timeout, a failed connectivity check, or an API error after promotion
-produces a **FAIL** report and exit code 1. The script **never rolls back on
+A timeout, a failed connectivity check, or an API error at any point from the
+promote call onwards produces a **FAIL** report and exit code 1. That
+includes an error from `PromoteReadReplica` itself: the request may still
+have reached AWS, so the outcome is ambiguous and is treated like any other
+mid-test failure (report written, operator actions printed). The script **never rolls back on
 its own**: a half-promoted database needs a human decision. The report and
 stderr list what the operator must do (check the instance state, decide
 which database the application should use, rebuild the replica if needed).
