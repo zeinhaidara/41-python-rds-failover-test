@@ -19,6 +19,11 @@ you pass `--execute`.
 > Azure SQL failover testing, validates application connectivity, and
 > generates a report.
 
+Why it matters: a disaster recovery plan that has never been run is a
+guess. Promoting the replica on purpose, timing it, and checking that the
+app can connect shows how long a real failover takes and what breaks,
+before an outage forces the question.
+
 ## Failover mechanism: cross-region read replica promotion
 
 This uses `PromoteReadReplica` on a cross-region read replica. It works for
